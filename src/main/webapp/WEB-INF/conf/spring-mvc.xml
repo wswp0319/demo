@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:websocket="http://www.springframework.org/schema/websocket" 
+	xsi:schemaLocation="
+      http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans.xsd
+      http://www.springframework.org/schema/util
+      http://www.springframework.org/schema/util/spring-util.xsd
+      http://www.springframework.org/schema/context 
+      http://www.springframework.org/schema/context/spring-context.xsd
+      http://www.springframework.org/schema/mvc
+      http://www.springframework.org/schema/mvc/spring-mvc.xsd
+      http://www.springframework.org/schema/websocket 
+      http://www.springframework.org/schema/websocket/spring-websocket.xsd">
+	<!-- 启动Spring MVC的注解功能，完成请求和注解POJO的映射 -->
+	<bean
+		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<bean
+					class="org.springframework.http.converter.StringHttpMessageConverter">
+					<property name="supportedMediaTypes">
+						<list>
+							<value>text/html;charset=UTF-8</value>
+						</list>
+					</property>
+				</bean>
+			</list>
+		</property>
+	</bean>
+
+	<!-- ViewResolver -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="viewClass"
+			value="org.springframework.web.servlet.view.JstlView" />
+		<property name="prefix" value="/WEB-INF/view/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<!-- 配置MultipartResolver 用于文件上传 使用spring的CommosMultipartResolver -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="204800000" />
+		<property name="maxInMemorySize" value="512" />
+		<property name="defaultEncoding" value="UTF-8" />
+		<property name="uploadTempDir" value="fileUpload/temp" />
+	</bean>
+	
+	<!-- define the exception interceptor-->  
+    <!--bean class="com.jmhqmc.demo.ExceptionHandler" /-->  
+
+	<!--bean id="exceptionResolver"
+		class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop
+					key="org.springframework.web.multipart.MaxUploadSizeExceededException">error_fileupload</prop>
+			</props>
+		</property>
+	</bean-->
+
+	<!--mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/*/*" />
+			<bean class="com.jmhqmc.demo.interceptor.SessionTimeoutInterceptor">
+				<property name="allowUrls">
+					<list>
+						<value>/m!/e.htm</value>
+						<value>/m!/login.htm</value>
+						<value>/m!/logout.htm</value>
+					</list>
+				</property>
+			</bean>
+		</mvc:interceptor>
+	</mvc:interceptors-->
+
+	<!-- exception handler -->
+	<!--bean id="handlerExceptionResolver"
+		class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="com.jmhqmc.demo.interceptor.SessionTimeoutException">redirect:/m!/e.htm</prop>
+			</props>
+		</property>
+	</bean-->
+	
+	
+	<websocket:handlers allowed-origins="*">
+        <websocket:mapping path="/websocket.ws" handler="demoWSHandler"/>
+         <websocket:handshake-interceptors>
+            <bean class="com.jmhqmc.demo.websocket.WebSocketSessionHandshakeInterceptor"/>
+        </websocket:handshake-interceptors>
+    </websocket:handlers>
+
+    <bean id="demoWSHandler" class="com.jmhqmc.demo.websocket.WebSocketHandler"/>
+    
+    
+    <bean class="org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean">
+        <property name="maxTextMessageBufferSize" value="8192"/>
+        <property name="maxBinaryMessageBufferSize" value="8192"/>
+    </bean>
+
+	<!-- 使用默认的注解映射 -->
+	<mvc:annotation-driven />
+
+	<!-- 自动扫描controller包中的控制器 -->
+	<context:component-scan base-package="com.jmhqmc.demo.controller" />
+	<!--context:component-scan base-package="com.jmhqmc.demo.websoket" /--> 
+
+</beans>

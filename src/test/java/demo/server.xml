@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:tool="http://www.springframework.org/schema/tool"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mongo="http://www.springframework.org/schema/data/mongo"
+	xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xsi:schemaLocation="
+  		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/tool http://www.springframework.org/schema/tool/spring-tool-4.1.xsd
+  		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+  		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+  		http://www.springframework.org/schema/mvc  http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd
+  		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+  		http://www.springframework.org/schema/data/mongo http://www.springframework.org/schema/data/mongo/spring-mongo-1.10.xsd
+  		http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd
+        http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.1.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd">
+
+	<!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 -->
+	<dubbo:application name="call-consumer" />
+
+	<!-- 使用zookeeper注册中心暴露服务地址 -->
+	<dubbo:registry address="zookeeper://localhost:2181" />
+
+	<dubbo:reference id="callService"
+		interface="com.jmhqmc.demo.service.CallService" />
+
+	<bean id="tcpServer" class="com.jmhqmc.demo.net.NettyTCPServer"
+		destroy-method="stopServer">
+		<constructor-arg ref="tcpConfig" />
+		<constructor-arg ref="myChannelInitializer" />
+	</bean>
+
+	<bean id="nettyServerHandler"
+		class="com.jmhqmc.demo.net.NettyServerHandler">
+		<property name="callService" ref="callService" />
+	</bean>
+
+	<bean id="myChannelInitializer"
+		class="com.jmhqmc.demo.net.JMChannelInitializer">
+		<property name="idleSeconds" value="5" />
+		<property name="handler" ref="nettyServerHandler" />
+		<property name="encoder"
+			value="io.netty.handler.codec.string.StringEncoder" />
+		<property name="decoder"
+			value="io.netty.handler.codec.string.StringDecoder" />
+	</bean>
+
+	<bean id="tcpConfig" class="com.jmhqmc.demo.net.NettyConfig">
+		<property name="channelOptions" ref="tcpChannelOptions" />
+		<property name="bossGroup" ref="bossGroup" />
+		<property name="workerGroup" ref="workerGroup" />
+		<property name="portNumber" value="8888" />
+	</bean>
+
+	<util:map id="tcpChannelOptions" map-class="java.util.HashMap">
+		<entry>
+			<key>
+				<util:constant
+					static-field="io.netty.channel.ChannelOption.SO_KEEPALIVE" />
+			</key>
+			<value type="java.lang.Boolean">true</value>
+		</entry>
+		<entry>
+			<key>
+				<util:constant
+					static-field="io.netty.channel.ChannelOption.SO_BACKLOG" />
+			</key>
+			<value type="java.lang.Integer">100</value>
+		</entry>
+	</util:map>
+
+	<bean id="bossGroup"
+		class="io.netty.channel.nio.NioEventLoopGroup"
+		destroy-method="shutdownGracefully">
+		<constructor-arg type="int" index="0" value="2" />
+		<constructor-arg index="1" ref="bossThreadFactory" />
+	</bean>
+
+	<bean id="workerGroup"
+		class="io.netty.channel.nio.NioEventLoopGroup"
+		destroy-method="shutdownGracefully">
+		<constructor-arg type="int" index="0" value="8" />
+		<constructor-arg index="1" ref="workerThreadFactory" />
+	</bean>
+
+	<bean id="bossThreadFactory"
+		class="com.jmhqmc.demo.net.NamedThreadFactory">
+		<constructor-arg type="java.lang.String"
+			value="Server-Boss" />
+	</bean>
+
+	<bean id="workerThreadFactory"
+		class="com.jmhqmc.demo.net.NamedThreadFactory">
+		<constructor-arg type="java.lang.String" index="0"
+			value="Server-Worker" />
+	</bean>
+	<!--bean id="appContext" class="com.jmhqmc.demo.net.AppContext" / -->
+</beans>
